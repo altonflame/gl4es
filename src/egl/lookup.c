@@ -48,7 +48,7 @@ void* gl4es_eglGetProcAddress(const char *name) {
     _EX(eglGetCurrentSurface);
     _EX(eglGetCurrentDisplay);
     _EX(eglGetPlatformDisplay);
-    _EXT(eglGetPlatformDisplay);
+    MAP("eglGetPlatformDisplayEXT", gl4es_eglGetPlatformDisplayEXT);
     _EX(eglQueryContext);
     _EX(eglWaitGL);
     _EX(eglWaitNative);

@@ -377,7 +377,6 @@ static int get_config_default(Display *display, int attribute, int *value) {
 
 static void init_display(Display *display) {
     LOAD_EGL(eglGetDisplay);
-    LOAD_EGL(eglGetPlatformDisplay);
 
     if (! g_display) {
         g_display = display;//XOpenDisplay(NULL);
@@ -387,8 +386,8 @@ static void init_display(Display *display) {
     }
 
 #ifdef HYBRIS
-    EGLint attribs[] = { EGL_NONE };
-    eglDisplay = egl_eglGetPlatformDisplay(EGL_PLATFORM_ANDROID_KHR, EGL_DEFAULT_DISPLAY, attribs);
+    EGLAttrib attribs[] = { EGL_NONE };
+    eglDisplay = gl4es_backend_eglGetPlatformDisplay(EGL_PLATFORM_ANDROID_KHR, EGL_DEFAULT_DISPLAY, attribs);
 #endif
 
     if(!eglDisplay) {

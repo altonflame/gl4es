@@ -1,4 +1,5 @@
 #include "loader.h"
+#include <limits.h>
 
 void (APIENTRY_GL4ES *gl4es_getMainFBSize)(GLint* width, GLint* height);
 
@@ -223,3 +224,162 @@ void* APIENTRY_GL4ES proc_address(void *lib, const char *name) {
     return NULL;
 #endif
 }
+
+
+#ifndef NOEGL
+static eglGetPlatformDisplay_PTR gl4es_backend_get_platform_display_core(void)
+{
+    static THREAD_LOCAL bool checked = false;
+    static THREAD_LOCAL eglGetPlatformDisplay_PTR fn = NULL;
+
+    if (!checked) {
+        checked = true;
+        if (egl) {
+            fn = (eglGetPlatformDisplay_PTR)proc_address(egl, "eglGetPlatformDisplay");
+        }
+    }
+
+    return fn;
+}
+
+static eglGetPlatformDisplayEXT_PTR gl4es_backend_get_platform_display_ext(void)
+{
+    static THREAD_LOCAL bool checked = false;
+    static THREAD_LOCAL eglGetPlatformDisplayEXT_PTR fn = NULL;
+
+    if (!checked) {
+        checked = true;
+        if (egl) {
+            fn = (eglGetPlatformDisplayEXT_PTR)proc_address(egl, "eglGetPlatformDisplayEXT");
+            if (!fn) {
+                eglGetProcAddress_PTR get_proc =
+                    (eglGetProcAddress_PTR)proc_address(egl, "eglGetProcAddress");
+                if (get_proc) {
+                    fn = (eglGetPlatformDisplayEXT_PTR)get_proc("eglGetPlatformDisplayEXT");
+                }
+            }
+        }
+    }
+
+    return fn;
+}
+
+static bool gl4es_eglattrib_to_eglint(const EGLAttrib *src, EGLint **dst)
+{
+    size_t count = 0;
+    EGLint *converted;
+
+    *dst = NULL;
+    if (!src) {
+        return true;
+    }
+
+    while (src[count] != EGL_NONE) {
+        if (src[count] < INT_MIN || src[count] > INT_MAX ||
+            src[count + 1] < INT_MIN || src[count + 1] > INT_MAX) {
+            LOGE("eglGetPlatformDisplayEXT cannot represent EGLAttrib value outside EGLint range\n");
+            return false;
+        }
+        count += 2;
+    }
+    ++count;
+
+    converted = (EGLint *)malloc(count * sizeof(EGLint));
+    if (!converted) {
+        return false;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        converted[i] = (EGLint)src[i];
+    }
+
+    *dst = converted;
+    return true;
+}
+
+static EGLAttrib *gl4es_eglint_to_eglattrib(const EGLint *src)
+{
+    size_t count = 0;
+    EGLAttrib *converted;
+
+    if (!src) {
+        return NULL;
+    }
+
+    while (src[count] != EGL_NONE) {
+        count += 2;
+    }
+    ++count;
+
+    converted = (EGLAttrib *)malloc(count * sizeof(EGLAttrib));
+    if (!converted) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        converted[i] = (EGLAttrib)src[i];
+    }
+
+    return converted;
+}
+
+EGLDisplay gl4es_backend_eglGetPlatformDisplay(EGLenum platform, void *native_display, const EGLAttrib *attrib_list)
+{
+    eglGetPlatformDisplay_PTR core = gl4es_backend_get_platform_display_core();
+    if (core) {
+        return core(platform, native_display, attrib_list);
+    }
+
+    eglGetPlatformDisplayEXT_PTR ext = gl4es_backend_get_platform_display_ext();
+    if (ext) {
+        EGLint *ext_attribs = NULL;
+        EGLDisplay display;
+
+        if (!gl4es_eglattrib_to_eglint(attrib_list, &ext_attribs)) {
+            return EGL_NO_DISPLAY;
+        }
+
+        display = ext(platform, native_display, ext_attribs);
+        free(ext_attribs);
+        return display;
+    }
+
+    eglGetDisplay_PTR get_display =
+        egl ? (eglGetDisplay_PTR)proc_address(egl, "eglGetDisplay") : NULL;
+    if (get_display) {
+        return get_display((EGLNativeDisplayType)native_display);
+    }
+
+    return EGL_NO_DISPLAY;
+}
+
+EGLDisplay gl4es_backend_eglGetPlatformDisplayEXT(EGLenum platform, void *native_display, const EGLint *attrib_list)
+{
+    eglGetPlatformDisplayEXT_PTR ext = gl4es_backend_get_platform_display_ext();
+    if (ext) {
+        return ext(platform, native_display, attrib_list);
+    }
+
+    eglGetPlatformDisplay_PTR core = gl4es_backend_get_platform_display_core();
+    if (core) {
+        EGLAttrib *core_attribs = gl4es_eglint_to_eglattrib(attrib_list);
+        EGLDisplay display;
+
+        if (attrib_list && !core_attribs) {
+            return EGL_NO_DISPLAY;
+        }
+
+        display = core(platform, native_display, core_attribs);
+        free(core_attribs);
+        return display;
+    }
+
+    eglGetDisplay_PTR get_display =
+        egl ? (eglGetDisplay_PTR)proc_address(egl, "eglGetDisplay") : NULL;
+    if (get_display) {
+        return get_display((EGLNativeDisplayType)native_display);
+    }
+
+    return EGL_NO_DISPLAY;
+}
+#endif

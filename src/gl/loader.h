@@ -29,7 +29,8 @@ typedef EGLContext (*eglGetCurrentContext_PTR)();
 typedef EGLDisplay (*eglGetCurrentDisplay_PTR)();
 typedef EGLSurface (*eglGetCurrentSurface_PTR)(EGLint readdraw);
 typedef EGLDisplay (*eglGetDisplay_PTR)(EGLNativeDisplayType display_id);
-typedef EGLDisplay (*eglGetPlatformDisplay_PTR)(EGLenum platform, void * native_display, const EGLint * attrib_list);
+typedef EGLDisplay (*eglGetPlatformDisplay_PTR)(EGLenum platform, void * native_display, const EGLAttrib * attrib_list);
+typedef EGLDisplay (*eglGetPlatformDisplayEXT_PTR)(EGLenum platform, void * native_display, const EGLint * attrib_list);
 typedef EGLint (*eglGetError_PTR)();
 typedef __eglMustCastToProperFunctionPointerType (*eglGetProcAddress_PTR)(const char * procname);
 typedef EGLBoolean (*eglInitialize_PTR)(EGLDisplay dpy, EGLint * major, EGLint * minor);
@@ -99,6 +100,11 @@ static void* dlsym(void* __restrict handle, const char* __restrict symbol)
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+NonAliasExportDecl(void*,proc_address,(void *lib, const char *name));
+#ifndef NOEGL
+EGLDisplay gl4es_backend_eglGetPlatformDisplay(EGLenum platform, void *native_display, const EGLAttrib *attrib_list);
+EGLDisplay gl4es_backend_eglGetPlatformDisplayEXT(EGLenum platform, void *native_display, const EGLint *attrib_list);
+#endif
 #include <string.h>
 
 #include "../glx/hardext.h"

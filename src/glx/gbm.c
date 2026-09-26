@@ -310,14 +310,9 @@ void CloseGBMFunctions()
 
 void* OpenGBMDisplay(void* display)
 {
-    LOAD_EGL_EXT(eglGetPlatformDisplay);
-    if(egl_eglGetPlatformDisplay) {
-        return egl_eglGetPlatformDisplay(EGL_PLATFORM_GBM_KHR, gbmdev, NULL);
-    } else {
-        LOAD_EGL(eglGetDisplay);
-        return egl_eglGetDisplay((EGLNativeDisplayType)gbmdev);
-    }
+    return gl4es_backend_eglGetPlatformDisplay(EGL_PLATFORM_GBM_KHR, gbmdev, NULL);
 }
+
 
 void* CreateGBMWindow(int w, int h)
 {

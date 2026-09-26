@@ -165,14 +165,13 @@ EGLDisplay gl4es_eglGetCurrentDisplay(void) {
 }
 
 EGLDisplay gl4es_eglGetPlatformDisplay(EGLenum platform, void *native_display, const EGLAttrib *attrib_list) {
-    LOAD_EGL_EXT(eglGetPlatformDisplay);
-    if (egl_eglGetPlatformDisplay)
-        return egl_eglGetPlatformDisplay(platform, native_display, attrib_list);
-    else {
-        LOAD_EGL(eglGetDisplay);
-        return egl_eglGetDisplay((EGLNativeDisplayType)native_display);
-    }
+    return gl4es_backend_eglGetPlatformDisplay(platform, native_display, attrib_list);
 }
+
+EGLDisplay gl4es_eglGetPlatformDisplayEXT(EGLenum platform, void *native_display, const EGLint *attrib_list) {
+    return gl4es_backend_eglGetPlatformDisplayEXT(platform, native_display, attrib_list);
+}
+
 
 EGLBoolean gl4es_eglQueryContext(EGLDisplay dpy, EGLContext ctx, EGLint attribute, EGLint *value) {
     LOAD_EGL(eglQueryContext);
@@ -255,7 +254,7 @@ AliasExport(EGLContext, eglGetCurrentContext,,(void));
 AliasExport(EGLSurface, eglGetCurrentSurface,,(EGLint readdraw));
 AliasExport(EGLDisplay, eglGetCurrentDisplay,,(void));
 AliasExport(EGLDisplay, eglGetPlatformDisplay,, (EGLenum platform, void *native_display, const EGLAttrib *attrib_list));
-AliasExport(EGLDisplay, eglGetPlatformDisplay, EXT, (EGLenum platform, void *native_display, const EGLAttrib *attrib_list));
+AliasExport(EGLDisplay, eglGetPlatformDisplay, EXT, (EGLenum platform, void *native_display, const EGLint *attrib_list));
 AliasExport(EGLBoolean, eglQueryContext,,(EGLDisplay dpy, EGLContext ctx, EGLint attribute, EGLint *value));
 AliasExport(EGLBoolean, eglWaitGL,,(void));
 AliasExport(EGLBoolean, eglWaitNative,,(EGLint engine));
