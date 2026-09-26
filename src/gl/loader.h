@@ -102,8 +102,8 @@ static void* dlsym(void* __restrict handle, const char* __restrict symbol)
 #include <stdlib.h>
 NonAliasExportDecl(void*,proc_address,(void *lib, const char *name));
 #ifndef NOEGL
-EGLDisplay gl4es_backend_eglGetPlatformDisplay(EGLenum platform, void *native_display, const EGLAttrib *attrib_list);
-EGLDisplay gl4es_backend_eglGetPlatformDisplayEXT(EGLenum platform, void *native_display, const EGLint *attrib_list);
+EXPORT EGLDisplay gl4es_backend_eglGetPlatformDisplay(EGLenum platform, void *native_display, const EGLAttrib *attrib_list);
+EXPORT EGLDisplay gl4es_backend_eglGetPlatformDisplayEXT(EGLenum platform, void *native_display, const EGLint *attrib_list);
 #endif
 #include <string.h>
 

@@ -46,10 +46,50 @@ EGLBoolean gl4es_eglGetConfigs(EGLDisplay dpy, EGLConfig *configs, EGLint config
     return egl_eglGetConfigs(dpy, configs, config_size, num_config);
 }
 
+static EGLint gl4es_eglTranslateRenderableType(EGLint value) {
+    if (value == EGL_DONT_CARE || !(value & EGL_OPENGL_BIT))
+        return value;
+
+    value &= ~EGL_OPENGL_BIT;
+    value |= (hardext.esversion == 1) ? EGL_OPENGL_ES_BIT : EGL_OPENGL_ES2_BIT;
+    return value;
+}
+
 EGLBoolean gl4es_eglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config) {
     LOAD_EGL(eglChooseConfig);
-    return egl_eglChooseConfig(dpy, attrib_list, configs, config_size, num_config);
+
+    if (!attrib_list)
+        return egl_eglChooseConfig(dpy, NULL, configs, config_size, num_config);
+
+    size_t count = 0;
+    bool needs_translation = false;
+    while (attrib_list[count] != EGL_NONE) {
+        if (attrib_list[count] == EGL_RENDERABLE_TYPE &&
+            gl4es_eglTranslateRenderableType(attrib_list[count + 1]) != attrib_list[count + 1])
+            needs_translation = true;
+        count += 2;
+    }
+
+    if (!needs_translation)
+        return egl_eglChooseConfig(dpy, attrib_list, configs, config_size, num_config);
+
+    EGLint *translated = (EGLint *)malloc((count + 1) * sizeof(EGLint));
+    if (!translated)
+        return EGL_FALSE;
+
+    for (size_t i = 0; i < count; i += 2) {
+        translated[i] = attrib_list[i];
+        translated[i + 1] = (attrib_list[i] == EGL_RENDERABLE_TYPE)
+            ? gl4es_eglTranslateRenderableType(attrib_list[i + 1])
+            : attrib_list[i + 1];
+    }
+    translated[count] = EGL_NONE;
+
+    EGLBoolean ret = egl_eglChooseConfig(dpy, translated, configs, config_size, num_config);
+    free(translated);
+    return ret;
 }
+
 
 EGLBoolean gl4es_eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value) {
     EGLint old_value = 0;
@@ -254,7 +294,7 @@ AliasExport(EGLContext, eglGetCurrentContext,,(void));
 AliasExport(EGLSurface, eglGetCurrentSurface,,(EGLint readdraw));
 AliasExport(EGLDisplay, eglGetCurrentDisplay,,(void));
 AliasExport(EGLDisplay, eglGetPlatformDisplay,, (EGLenum platform, void *native_display, const EGLAttrib *attrib_list));
-AliasExport(EGLDisplay, eglGetPlatformDisplay, EXT, (EGLenum platform, void *native_display, const EGLint *attrib_list));
+AliasExport_A(EGLDisplay, eglGetPlatformDisplay, EXT, (EGLenum platform, void *native_display, const EGLint *attrib_list), eglGetPlatformDisplayEXT);
 AliasExport(EGLBoolean, eglQueryContext,,(EGLDisplay dpy, EGLContext ctx, EGLint attribute, EGLint *value));
 AliasExport(EGLBoolean, eglWaitGL,,(void));
 AliasExport(EGLBoolean, eglWaitNative,,(EGLint engine));
